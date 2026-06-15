@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -8,6 +8,9 @@ const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
 export const metadata: Metadata = {
   title: "WAR ROOM — World Cup Realtime Analytics",
   description: "Military-grade real-time analysis of FIFA World Cup 2026 matches",
+};
+
+export const viewport: Viewport = {
   themeColor: "#05060f",
 };
 
