@@ -5,6 +5,7 @@ import redis.asyncio as aioredis
 from tenacity import retry, stop_after_attempt, wait_exponential
 from config import IngestionConfig
 from normalizer import normalize_football_data_match, normalize_all_matches
+from processor import MatchProcessor
 
 
 class IngestionPipeline:
@@ -21,6 +22,7 @@ class IngestionPipeline:
         self._redis: aioredis.Redis | None = None
         self._http: httpx.AsyncClient | None = None
         self._backend: httpx.AsyncClient | None = None
+        self._processor = MatchProcessor(config)
 
     async def run(self) -> None:
         self._redis = aioredis.from_url(self.config.REDIS_URL, decode_responses=True)
@@ -36,8 +38,13 @@ class IngestionPipeline:
 
         print(f"[ingestion] Starting pipeline. Poll interval: {self.config.POLL_INTERVAL_SECONDS}s")
 
-        # Seed all tournament matches on startup
+        # 1. Seed all tournament matches on startup
         await self._seed_all_matches()
+
+        # 2. Compute stats + predictions for all seeded matches
+        print("[ingestion] Running stats computation...")
+        await self._processor.run_full_compute()
+        print("[ingestion] Stats computation complete.")
 
         try:
             while True:
@@ -47,6 +54,7 @@ class IngestionPipeline:
             await self._http.aclose()
             await self._backend.aclose()
             await self._redis.aclose()
+            await self._processor.close()
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=30))
     async def _seed_all_matches(self) -> None:
@@ -87,9 +95,11 @@ class IngestionPipeline:
             await self._redis.publish(channel, json.dumps(payload))
             await self._redis.publish("live:all", json.dumps(payload))
 
-            # Keep DB in sync
+            # Keep DB in sync + update live stats
             try:
                 await self._backend.post("/api/v1/internal/matches/upsert", json=payload)
-            except Exception:
-                pass  # Redis broadcast already sent — DB sync is best-effort
+                # Compute and broadcast live stats
+                await self._processor.process_live_match(payload)
+            except Exception as e:
+                print(f"[ingestion] Live sync error for {payload.get('id')}: {e}")
 

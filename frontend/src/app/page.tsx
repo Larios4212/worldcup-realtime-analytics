@@ -9,10 +9,11 @@ import { EventFeed } from "@/components/EventFeed";
 import { XGChart } from "@/components/XGChart";
 import { FootballPitch } from "@/components/FootballPitch";
 import { PossessionBar } from "@/components/PossessionBar";
+import { PredictionPanel } from "@/components/PredictionPanel";
 import { useMatchWebSocket } from "@/hooks/useMatchWebSocket";
 import { Match } from "@/types";
 import { formatMinute } from "@/lib/utils";
-import { getMatches } from "@/lib/api";
+import { getMatches, getMatchStats, getMatchPrediction, MatchStats as ApiMatchStats, Prediction } from "@/lib/api";
 
 // ── Static mock (no Date.now() = no hydration mismatch) ──────────────────────
 const STATIC_MOCK: Match[] = [
@@ -75,10 +76,29 @@ const XG_MOCK = Array.from({ length: 19 }, (_, i) => ({
 // ── Match detail ─────────────────────────────────────────────────────────────
 function MatchDetailPanel({ match }: { match: Match }) {
   const { messages, connected } = useMatchWebSocket(match.id);
+  const [enrichedStats, setEnrichedStats] = useState<ApiMatchStats | null>(null);
+  const [prediction, setPrediction] = useState<Prediction | null>(null);
+
+  // Load real stats and predictions when match changes
+  useEffect(() => {
+    setEnrichedStats(null);
+    setPrediction(null);
+    getMatchStats(match.id).then(setEnrichedStats);
+    getMatchPrediction(match.id).then(setPrediction);
+  }, [match.id]);
+
   const isLive = match.status === "LIVE" || match.status === "HALFTIME";
   const liveScore = messages.find((m) => m.score)?.score ?? match.score;
   const latestStats = messages.find((m) => m.stats)?.stats;
-  const currentStats = latestStats ? { ...match.stats, ...latestStats } : match.stats;
+
+  // Merge: API stats > WebSocket update > match.stats fallback
+  const currentStats = enrichedStats
+    ? { ...match.stats, ...enrichedStats, ...(latestStats ?? {}) }
+    : latestStats
+    ? { ...match.stats, ...latestStats }
+    : match.stats;
+
+  const dataSource = enrichedStats?.data_source ?? "none";
 
   return (
     <motion.div key={match.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
@@ -178,14 +198,26 @@ function MatchDetailPanel({ match }: { match: Match }) {
         </div>
       </div>
 
-      {/* Stats + Events */}
+      {/* Stats + Prediction/Events */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="glass rounded-xl p-4">
-          <StatsGrid stats={currentStats}
-            homeTeam={match.home_team.short_name} awayTeam={match.away_team.short_name} />
+          <StatsGrid
+            stats={currentStats}
+            homeTeam={match.home_team.short_name}
+            awayTeam={match.away_team.short_name}
+            dataSource={dataSource}
+          />
         </div>
         <div className="glass rounded-xl p-4">
-          <EventFeed events={messages} />
+          {prediction ? (
+            <PredictionPanel
+              prediction={prediction}
+              homeTeam={match.home_team.short_name}
+              awayTeam={match.away_team.short_name}
+            />
+          ) : (
+            <EventFeed events={messages} />
+          )}
         </div>
       </div>
 
