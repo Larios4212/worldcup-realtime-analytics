@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Float, DateTime, Enum as SAEnum, ForeignKey
+from sqlalchemy import Column, String, Integer, Float, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.infra.db.session import Base
@@ -21,7 +21,7 @@ class MatchModel(Base):
     id = Column(String, primary_key=True)
     home_team_id = Column(String, ForeignKey("teams.id"), nullable=False)
     away_team_id = Column(String, ForeignKey("teams.id"), nullable=False)
-    status = Column(SAEnum(MatchStatus), nullable=False, default=MatchStatus.SCHEDULED)
+    status = Column(String, nullable=False, default=MatchStatus.SCHEDULED.value)
     kickoff_utc = Column(DateTime, nullable=False)
     score_home = Column(Integer, default=0)
     score_away = Column(Integer, default=0)
@@ -62,7 +62,7 @@ class MatchEventModel(Base):
 
     id = Column(String, primary_key=True)
     match_id = Column(String, ForeignKey("matches.id"), nullable=False)
-    event_type = Column(SAEnum(EventType), nullable=False)
+    event_type = Column(String, nullable=False)
     minute = Column(Integer, nullable=False)
     team_id = Column(String, nullable=False)
     player_name = Column(String, nullable=True)

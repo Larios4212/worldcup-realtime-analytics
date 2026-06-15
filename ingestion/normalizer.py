@@ -10,8 +10,8 @@ def normalize_football_data_match(raw: dict[str, Any]) -> dict:
     full_time = score.get("fullTime", {}) or {}
     half_time = score.get("halfTime", {}) or {}
 
-    home = raw.get("homeTeam", {})
-    away = raw.get("awayTeam", {})
+    home = raw.get("homeTeam") or {}
+    away = raw.get("awayTeam") or {}
 
     return {
         "type": "STATS_UPDATE",
@@ -19,15 +19,15 @@ def normalize_football_data_match(raw: dict[str, Any]) -> dict:
         "status": _map_status(raw.get("status", "")),
         "minute": raw.get("minute"),
         "home_team": {
-            "id": str(home.get("id", "")),
-            "name": home.get("name", ""),
-            "short_name": home.get("shortName") or home.get("tla") or home.get("name", "")[:3].upper(),
+            "id": str(home.get("id", "") or ""),
+            "name": home.get("name") or "TBD",
+            "short_name": home.get("shortName") or home.get("tla") or (home.get("name") or "TBD")[:3].upper(),
             "crest_url": home.get("crest"),
         },
         "away_team": {
-            "id": str(away.get("id", "")),
-            "name": away.get("name", ""),
-            "short_name": away.get("shortName") or away.get("tla") or away.get("name", "")[:3].upper(),
+            "id": str(away.get("id", "") or ""),
+            "name": away.get("name") or "TBD",
+            "short_name": away.get("shortName") or away.get("tla") or (away.get("name") or "TBD")[:3].upper(),
             "crest_url": away.get("crest"),
         },
         "score": {

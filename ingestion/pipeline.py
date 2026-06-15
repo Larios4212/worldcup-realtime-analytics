@@ -31,6 +31,7 @@ class IngestionPipeline:
         self._backend = httpx.AsyncClient(
             base_url=self.config.BACKEND_URL,
             timeout=10.0,
+            follow_redirects=True,
         )
 
         print(f"[ingestion] Starting pipeline. Poll interval: {self.config.POLL_INTERVAL_SECONDS}s")
@@ -56,12 +57,16 @@ class IngestionPipeline:
             response.raise_for_status()
             matches = response.json().get("matches", [])
             print(f"[ingestion] Seeding {len(matches)} total matches into DB")
+            ok = 0
             for raw in matches:
                 payload = normalize_football_data_match(raw)
                 try:
-                    await self._backend.post("/api/v1/internal/matches/upsert", json=payload)
+                    r = await self._backend.post("/api/v1/internal/matches/upsert", json=payload)
+                    if r.status_code == 200:
+                        ok += 1
                 except Exception as e:
                     print(f"[ingestion] Could not upsert match {payload.get('id')}: {e}")
+            print(f"[ingestion] Seeded {ok}/{len(matches)} matches OK")
         except Exception as e:
             print(f"[ingestion] Seed failed (will use live-only mode): {e}")
 
