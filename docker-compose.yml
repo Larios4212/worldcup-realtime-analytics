@@ -1,0 +1,91 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: timescale/timescaledb:latest-pg16
+    container_name: wc_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-wc_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-wc_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-worldcup}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-wc_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: wc_redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: wc_backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-wc_user}:${POSTGRES_PASSWORD:-wc_pass}@postgres:5432/${POSTGRES_DB:-worldcup}
+      - REDIS_URL=redis://redis:6379/0
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      - FOOTBALL_DATA_API_KEY=${FOOTBALL_DATA_API_KEY}
+      - API_SPORTS_KEY=${API_SPORTS_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  ingestion:
+    build:
+      context: ./ingestion
+      dockerfile: Dockerfile
+    container_name: wc_ingestion
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-wc_user}:${POSTGRES_PASSWORD:-wc_pass}@postgres:5432/${POSTGRES_DB:-worldcup}
+      - FOOTBALL_DATA_API_KEY=${FOOTBALL_DATA_API_KEY}
+      - API_SPORTS_KEY=${API_SPORTS_KEY}
+      - POLL_INTERVAL_SECONDS=${POLL_INTERVAL_SECONDS:-30}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: wc_frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXT_PUBLIC_WS_URL=ws://localhost:8000
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  redis_data:
