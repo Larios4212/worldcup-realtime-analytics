@@ -1,0 +1,142 @@
+@import "tailwindcss";
+
+:root {
+  --bg-void: #05060f;
+  --bg-deep: #080c18;
+  --bg-surface: #0d1225;
+  --bg-elevated: #131929;
+  --border-dim: rgba(255, 255, 255, 0.06);
+  --border-glow: rgba(99, 255, 180, 0.25);
+  --accent-green: #00ff87;
+  --accent-cyan: #00d4ff;
+  --accent-gold: #ffd700;
+  --accent-red: #ff4d6d;
+  --accent-yellow: #ffb703;
+  --text-primary: #f0f4ff;
+  --text-secondary: #8892b0;
+  --text-muted: #4a5568;
+  --live-pulse: #ff4757;
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background-color: var(--bg-void);
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 2px,
+    rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.bg-grid {
+  background-image:
+    linear-gradient(rgba(99,255,180,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99,255,180,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.glass {
+  background: rgba(13,18,37,0.7);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border-dim);
+}
+
+.glass-hover { transition: all 0.3s ease; }
+.glass-hover:hover {
+  background: rgba(19,25,41,0.85);
+  border-color: var(--border-glow);
+  transform: translateY(-1px);
+}
+
+.glow-green { box-shadow: 0 0 20px rgba(0,255,135,0.15), 0 0 60px rgba(0,255,135,0.05); }
+.glow-cyan  { box-shadow: 0 0 20px rgba(0,212,255,0.15), 0 0 60px rgba(0,212,255,0.05); }
+.text-glow-green { text-shadow: 0 0 20px rgba(0,255,135,0.6); }
+.text-glow-gold  { text-shadow: 0 0 20px rgba(255,215,0,0.6); }
+
+.live-dot {
+  width: 8px; height: 8px;
+  background: var(--live-pulse);
+  border-radius: 50%;
+  animation: live-pulse 1.5s infinite;
+}
+@keyframes live-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(255,71,87,0.7); }
+  70%  { box-shadow: 0 0 0 8px rgba(255,71,87,0); }
+  100% { box-shadow: 0 0 0 0 rgba(255,71,87,0); }
+}
+
+@keyframes score-flash {
+  0%,100% { color: var(--text-primary); }
+  25%,75%  { color: var(--accent-gold); text-shadow: 0 0 30px rgba(255,215,0,0.8); }
+}
+.score-flash { animation: score-flash 1.5s ease; }
+
+.stat-bar { height: 4px; background: var(--bg-elevated); border-radius: 2px; overflow: hidden; }
+.stat-bar-fill-home {
+  background: linear-gradient(90deg, var(--accent-cyan), rgba(0,212,255,0.6));
+  height: 100%; border-radius: 2px;
+  transition: width 1s cubic-bezier(0.4,0,0.2,1);
+}
+.stat-bar-fill-away {
+  background: linear-gradient(90deg, rgba(0,255,135,0.6), var(--accent-green));
+  height: 100%; border-radius: 2px; float: right;
+  transition: width 1s cubic-bezier(0.4,0,0.2,1);
+}
+
+.event-goal   { border-left: 3px solid var(--accent-gold); }
+.event-yellow { border-left: 3px solid var(--accent-yellow); }
+.event-red    { border-left: 3px solid var(--accent-red); }
+.event-sub    { border-left: 3px solid var(--accent-cyan); }
+.event-var    { border-left: 3px solid #a78bfa; }
+
+::-webkit-scrollbar       { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg-deep); }
+::-webkit-scrollbar-thumb { background: var(--bg-elevated); border-radius: 2px; }
+
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.count-appear { animation: count-up 0.4s ease forwards; }
+
+.pitch-line { stroke: rgba(255,255,255,0.15); }
+.pitch-fill { fill: rgba(0,80,30,0.4); }
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
