@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   postgres:
     image: timescale/timescaledb:latest-pg16
@@ -64,6 +62,7 @@ services:
     environment:
       - REDIS_URL=redis://redis:6379/0
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-wc_user}:${POSTGRES_PASSWORD:-wc_pass}@postgres:5432/${POSTGRES_DB:-worldcup}
+      - BACKEND_URL=http://backend:8000
       - FOOTBALL_DATA_API_KEY=${FOOTBALL_DATA_API_KEY}
       - API_SPORTS_KEY=${API_SPORTS_KEY}
       - POLL_INTERVAL_SECONDS=${POLL_INTERVAL_SECONDS:-30}

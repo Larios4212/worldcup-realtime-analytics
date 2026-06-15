@@ -7,8 +7,11 @@ def normalize_football_data_match(raw: dict[str, Any]) -> dict:
     into our internal schema.
     """
     score = raw.get("score", {})
-    full_time = score.get("fullTime", {})
-    half_time = score.get("halfTime", {})
+    full_time = score.get("fullTime", {}) or {}
+    half_time = score.get("halfTime", {}) or {}
+
+    home = raw.get("homeTeam", {})
+    away = raw.get("awayTeam", {})
 
     return {
         "type": "STATS_UPDATE",
@@ -16,16 +19,16 @@ def normalize_football_data_match(raw: dict[str, Any]) -> dict:
         "status": _map_status(raw.get("status", "")),
         "minute": raw.get("minute"),
         "home_team": {
-            "id": str(raw["homeTeam"]["id"]),
-            "name": raw["homeTeam"]["name"],
-            "short_name": raw["homeTeam"].get("shortName", raw["homeTeam"]["name"][:3].upper()),
-            "crest_url": raw["homeTeam"].get("crest"),
+            "id": str(home.get("id", "")),
+            "name": home.get("name", ""),
+            "short_name": home.get("shortName") or home.get("tla") or home.get("name", "")[:3].upper(),
+            "crest_url": home.get("crest"),
         },
         "away_team": {
-            "id": str(raw["awayTeam"]["id"]),
-            "name": raw["awayTeam"]["name"],
-            "short_name": raw["awayTeam"].get("shortName", raw["awayTeam"]["name"][:3].upper()),
-            "crest_url": raw["awayTeam"].get("crest"),
+            "id": str(away.get("id", "")),
+            "name": away.get("name", ""),
+            "short_name": away.get("shortName") or away.get("tla") or away.get("name", "")[:3].upper(),
+            "crest_url": away.get("crest"),
         },
         "score": {
             "home": full_time.get("home") or 0,
@@ -33,19 +36,36 @@ def normalize_football_data_match(raw: dict[str, Any]) -> dict:
             "home_ht": half_time.get("home"),
             "away_ht": half_time.get("away"),
         },
-        "stage": raw.get("stage", "GROUP_STAGE"),
+        "stage": _map_stage(raw.get("stage", "GROUP_STAGE")),
         "group": raw.get("group"),
         "kickoff_utc": raw.get("utcDate"),
+        "venue": raw.get("venue"),
     }
 
 
+def normalize_all_matches(raw_list: list[dict]) -> list[dict]:
+    return [normalize_football_data_match(r) for r in raw_list]
+
+
 def _map_status(status: str) -> str:
-    mapping = {
+    return {
         "SCHEDULED": "SCHEDULED",
+        "TIMED": "SCHEDULED",
         "LIVE": "LIVE",
         "IN_PLAY": "LIVE",
         "PAUSED": "HALFTIME",
         "FINISHED": "FINISHED",
         "POSTPONED": "POSTPONED",
-    }
-    return mapping.get(status, "SCHEDULED")
+        "CANCELLED": "POSTPONED",
+    }.get(status, "SCHEDULED")
+
+
+def _map_stage(stage: str) -> str:
+    return {
+        "GROUP_STAGE": "Group Stage",
+        "LAST_16": "Round of 16",
+        "QUARTER_FINALS": "Quarter-Final",
+        "SEMI_FINALS": "Semi-Final",
+        "THIRD_PLACE": "Third Place",
+        "FINAL": "Final",
+    }.get(stage, stage.replace("_", " ").title())

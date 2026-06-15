@@ -29,8 +29,8 @@ import sys
 # Ensure shared code is importable
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from ingestion.pipeline import IngestionPipeline
-from ingestion.config import IngestionConfig
+from pipeline import IngestionPipeline
+from config import IngestionConfig
 
 
 async def main():
